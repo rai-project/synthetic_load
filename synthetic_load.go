@@ -1,9 +1,11 @@
 package synthetic_load
 
 import (
+	"fmt"
 	"math"
 	"math/rand"
 	"sort"
+	"sync"
 	"time"
 
 	"github.com/seehuhn/mt19937"
@@ -33,7 +35,8 @@ func NewTrace(opts ...Option) Trace {
 	for timeStamp < options.minDuration || len(tr) < options.minQueries {
 		// Poisson arrival process corresponds to exponentially distributed
 		// interarrival times.
-		timeStamp += time.Duration(rng.ExpFloat64() * float64(time.Millisecond))
+		// pp.Println(options.minDuration, " === ", time.Duration((rng.ExpFloat64()/options.qps)*float64(time.Second)))
+		timeStamp += time.Duration((rng.ExpFloat64() / options.qps) * float64(time.Second))
 		tr = append(tr,
 			TraceEntry{
 				TimeStamp:      timeStamp,
@@ -50,7 +53,7 @@ func (trace Trace) QPS() float64 {
 	last := trace[traceLength-1]
 	first := trace[0]
 	duration := last.TimeStamp - first.TimeStamp
-	return float64(duration.Nanoseconds()) / float64(traceLength)
+	return float64(traceLength) / float64(duration.Seconds())
 }
 
 // Replay a trace using a user provided work enqueueing function. Returns the
@@ -65,10 +68,14 @@ func (trace Trace) Replay(opts ...Option) time.Duration {
 	latencies := make([]time.Duration, len(trace))
 	start := time.Now()
 
+	var wg sync.WaitGroup
+	wg.Add(len(trace))
+
 	for ii := range trace {
 		ii := ii
 		tr := trace[ii]
 		go func() {
+			defer wg.Done()
 			queryStartTime := start.Add(tr.TimeStamp)
 			time.Sleep(tr.TimeStamp)
 			input, err := options.inputGenerator(tr.GeneratorIndex)
@@ -83,6 +90,8 @@ func (trace Trace) Replay(opts ...Option) time.Duration {
 			)
 		}()
 	}
+
+	wg.Wait()
 
 	sort.Slice(latencies, func(ii, jj int) bool {
 		return latencies[ii] < latencies[jj]
@@ -124,6 +133,11 @@ func FindMaxQPS(opts ...Option) float64 {
 			log.Debug("replaying trace")
 			measuredLatency := trace.Replay(opts...)
 
+			fmt.Printf("qps = %v , latency_bound_percentile = %v, latency = %v\n",
+				traceQps,
+				100*options.latencyBoundPercentile,
+				measuredLatency,
+			)
 			log.WithField("qps", traceQps).
 				WithField("latency_bound_percentile", 100*options.latencyBoundPercentile).
 				WithField("% latency", measuredLatency).
@@ -134,6 +148,8 @@ func FindMaxQPS(opts ...Option) float64 {
 				qpsLowerBound = math.Max(traceQps, qpsLowerBound)
 			}
 		}
+
+		// fmt.Printf("qpsLowerBound = %v qpsUpperBound =%v traceQps =%v\n", qpsLowerBound, qpsUpperBound, traceQps)
 
 		log.WithField("qpsUpperBound", qpsUpperBound).
 			WithField("qpsLowerBound", qpsLowerBound).

@@ -97,7 +97,7 @@ func NewOptions(opts ...Option) *Options {
 			}
 			return ReadFile("/chicken.jpg")
 		},
-		seed:                   time.Now().UnixNano(),
+		seed:                   0, //time.Now().UnixNano(),
 		latencyBound:           400 * time.Microsecond,
 		latencyBoundPercentile: 0.95,
 		minDuration:            2 * time.Second,
