@@ -102,6 +102,7 @@ func NewOptions(opts ...Option) *Options {
 		latencyBoundPercentile: 0.95,
 		minDuration:            2 * time.Second,
 		minQueries:             4096,
+    qps:                    512.0,
 		runner:                 SleepingRunner{},
 		maxQpsSearchIterations: math.MaxInt64,
 	}
