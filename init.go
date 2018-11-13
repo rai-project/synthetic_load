@@ -1,8 +1,6 @@
 package synthetic_load
 
 import (
-	"os"
-
 	"github.com/rai-project/config"
 	"github.com/rai-project/logger"
 	"github.com/sirupsen/logrus"
@@ -13,8 +11,6 @@ var (
 )
 
 func init() {
-	logrus.SetLevel(logrus.TraceLevel)
-	logrus.SetOutput(os.Stdout)
 	config.AfterInit(func() {
 		log = logger.New().WithField("pkg", "caffe")
 	})
