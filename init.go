@@ -7,11 +7,11 @@ import (
 )
 
 var (
-	log *logrus.Entry = logger.New().WithField("pkg", "caffe")
+	log *logrus.Entry = logger.New().WithField("pkg", "synthetic_load")
 )
 
 func init() {
 	config.AfterInit(func() {
-		log = logger.New().WithField("pkg", "caffe")
+		log = logger.New().WithField("pkg", "synthetic_load")
 	})
 }
