@@ -1,6 +1,7 @@
 package synthetic_load
 
 import (
+	"errors"
 	"fmt"
 	"math"
 	"math/rand"
@@ -60,11 +61,11 @@ func (trace Trace) QPS() float64 {
 
 // Replay a trace using a user provided work enqueueing function. Returns the
 // 99-percentile latency.
-func (trace Trace) Replay(opts ...Option) time.Duration {
+func (trace Trace) Replay(opts ...Option) (time.Duration, error) {
 	options := NewOptions(opts...)
 
 	if len(trace) == 0 {
-		return time.Duration(0)
+		return time.Duration(0), errors.New("empty trace")
 	}
 
 	latencies := make([]time.Duration, len(trace))
@@ -91,7 +92,7 @@ func (trace Trace) Replay(opts ...Option) time.Duration {
 				input,
 				func() {
 					latencies[ii] = time.Since(queryStartTime)
-					fmt.Printf("it took %v to run ii = %v\n", latencies[ii], ii)
+					// fmt.Printf("it took %v to run ii = %v\n", latencies[ii], ii)
 				},
 			)
 		}()
@@ -104,7 +105,7 @@ func (trace Trace) Replay(opts ...Option) time.Duration {
 	})
 
 	idx := int(math.Ceil(options.latencyBoundPercentile * float64(len(latencies)-1)))
-	return latencies[idx]
+	return latencies[idx], nil
 }
 
 // Returns the maximum throughput (QPS) subject to a latency bound.
@@ -135,7 +136,10 @@ func FindMaxQPS(opts ...Option) float64 {
 		traceQps := trace.QPS()
 		if qpsLowerBound < traceQps && traceQps < qpsUpperBound {
 			log.Debug("replaying trace")
-			measuredLatency := trace.Replay(opts...)
+			measuredLatency, err := trace.Replay(opts...)
+			if err != nil {
+				break
+			}
 
 			fmt.Printf("qps = %v, latency_bound_percentile = %v, latency = %v\n",
 				traceQps,
