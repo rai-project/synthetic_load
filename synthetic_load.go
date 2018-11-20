@@ -12,8 +12,8 @@ import (
 )
 
 type TraceEntry struct {
-	TimeStamp      time.Duration
-	GeneratorIndex int
+	Index     int
+	TimeStamp time.Duration
 }
 
 type Trace []TraceEntry
@@ -39,8 +39,8 @@ func NewTrace(opts ...Option) Trace {
 		timeStamp += time.Duration((rng.ExpFloat64() / options.qps) * float64(time.Second))
 		tr = append(tr,
 			TraceEntry{
-				TimeStamp:      timeStamp,
-				GeneratorIndex: rand.Int(),
+				Index:     len(tr),
+				TimeStamp: timeStamp,
 			},
 		)
 	}
@@ -78,12 +78,8 @@ func (trace Trace) Replay(opts ...Option) time.Duration {
 			defer wg.Done()
 			queryStartTime := start.Add(tr.TimeStamp)
 			time.Sleep(tr.TimeStamp)
-			input, err := options.inputGenerator(tr.GeneratorIndex)
-			if err != nil {
-				log.WithError(err).Panic("unable to generate input")
-			}
 			options.runner.Run(
-				input,
+				tr,
 				func() {
 					latencies[ii] = time.Since(queryStartTime)
 				},
@@ -125,7 +121,7 @@ func FindMaxQPS(opts ...Option) float64 {
 		log.WithField("targetQps", targetQps).Debug("creating a new trace")
 
 		options.seed += 1
-		trace := NewTrace(append(opts, Seed(options.seed), QPS(targetQps))...)
+		trace := NewTrace(append(opts, SetSeed(options.seed), SetQPS(targetQps))...)
 		traceQps := trace.QPS()
 		if qpsLowerBound < traceQps && traceQps < qpsUpperBound {
 			log.Debug("replaying trace")

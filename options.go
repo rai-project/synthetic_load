@@ -8,7 +8,6 @@ import (
 
 type Options struct {
 	ctx                    context.Context
-	inputGenerator         func(idx int) ([]byte, error)
 	seed                   int64
 	minQueries             int
 	minDuration            time.Duration
@@ -21,68 +20,61 @@ type Options struct {
 
 type Option func(*Options)
 
-func Context(ctx context.Context) Option {
+func SetContext(ctx context.Context) Option {
 	return func(o *Options) {
 		o.ctx = ctx
 	}
 }
 
-// The input generator (what's called query library in sylt)
-func InputGenerator(inputGenerator func(int) ([]byte, error)) Option {
-	return func(o *Options) {
-		o.inputGenerator = inputGenerator
-	}
-}
-
 // The input runner (what's called enqueue function in sylt)
-func InputRunner(runner Runner) Option {
+func SetRunner(runner Runner) Option {
 	return func(o *Options) {
 		o.runner = runner
 	}
 }
 
 // The pseudo-random number generator's seed.
-func Seed(seed int64) Option {
+func SetSeed(seed int64) Option {
 	return func(o *Options) {
 		o.seed = seed
 	}
 }
 
 // The minimum number of queries.
-func MinQueries(m int) Option {
+func SetMinQueries(m int) Option {
 	return func(o *Options) {
 		o.minQueries = m
 	}
 }
 
 // The minimum duration of the trace.
-func MinDuration(d time.Duration) Option {
+func SetMinDuration(d time.Duration) Option {
 	return func(o *Options) {
 		o.minDuration = d
 	}
 }
 
-func QPS(qps float64) Option {
+func SetQPS(qps float64) Option {
 	return func(o *Options) {
 		o.qps = qps
 	}
 }
 
 // The target latency bound.
-func LatencyBound(latencyBound time.Duration) Option {
+func SetLatencyBound(latencyBound time.Duration) Option {
 	return func(o *Options) {
 		o.latencyBound = latencyBound
 	}
 }
 
 // The minimum percent of queries meeting the latency bound.
-func LatencyBoundPercentile(latencyBoundPercentile float64) Option {
+func SetLatencyBoundPercentile(latencyBoundPercentile float64) Option {
 	return func(o *Options) {
 		o.latencyBoundPercentile = latencyBoundPercentile
 	}
 }
 
-func MaxQPSSearchIterations(maxQpsSearchIterations int64) Option {
+func SetMaxQPSSearchIterations(maxQpsSearchIterations int64) Option {
 	return func(o *Options) {
 		o.maxQpsSearchIterations = maxQpsSearchIterations
 	}
@@ -90,13 +82,7 @@ func MaxQPSSearchIterations(maxQpsSearchIterations int64) Option {
 
 func NewOptions(opts ...Option) *Options {
 	options := &Options{
-		ctx: context.Background(),
-		inputGenerator: func(idx int) ([]byte, error) {
-			if idx%2 == 0 {
-				ReadFile("/cat.jpg")
-			}
-			return ReadFile("/chicken.jpg")
-		},
+		ctx:                    context.Background(),
 		seed:                   0, //time.Now().UnixNano(),
 		latencyBound:           100 * time.Millisecond,
 		latencyBoundPercentile: 0.99,
