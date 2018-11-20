@@ -8,7 +8,7 @@ import (
 type SleepingRunner struct {
 }
 
-func (s SleepingRunner) Run(tr TraceEntry, batchSize int, input []byte, onFinish func()) error {
+func (s SleepingRunner) Run(tr TraceEntry, batchSize int, input [][]byte, onFinish func()) error {
 	time.Sleep(10 * time.Millisecond)
 	onFinish()
 	return nil

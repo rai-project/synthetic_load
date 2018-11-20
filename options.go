@@ -8,7 +8,7 @@ import (
 
 type Options struct {
 	ctx                    context.Context
-	inputGenerator         func(idx int) ([]byte, error)
+	inputGenerator         func(idx int, batchSize int) ([][]byte, error)
 	seed                   int64
 	minQueries             int
 	minDuration            time.Duration
@@ -29,7 +29,7 @@ func Context(ctx context.Context) Option {
 }
 
 // The input generator (what's called query library in sylt)
-func InputGenerator(inputGenerator func(int) ([]byte, error)) Option {
+func InputGenerator(inputGenerator func(int, int) ([][]byte, error)) Option {
 	return func(o *Options) {
 		o.inputGenerator = inputGenerator
 	}
@@ -98,11 +98,18 @@ func MaxQPSSearchIterations(maxQpsSearchIterations int64) Option {
 func NewOptions(opts ...Option) *Options {
 	options := &Options{
 		ctx: context.Background(),
-		inputGenerator: func(idx int) ([]byte, error) {
-			if idx%2 == 0 {
-				ReadFile("/cat.jpg")
+		inputGenerator: func(idx int, batchSize int) ([][]byte, error) {
+			var ret [][]byte
+			for ii := 0; ii < batchSize; ii++ {
+				var in []byte
+				if idx%2 == 0 {
+					in, _ = ReadFile("/cat.jpg")
+				} else {
+					in, _ = ReadFile("/chicken.jpg")
+				}
+				ret = append(ret, in)
 			}
-			return ReadFile("/chicken.jpg")
+			return ret, nil
 		},
 		seed:                   0, //time.Now().UnixNano(),
 		latencyBound:           100 * time.Millisecond,

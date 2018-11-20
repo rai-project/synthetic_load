@@ -48,10 +48,6 @@ func NewTrace(opts ...Option) Trace {
 		)
 	}
 
-	sort.Slice(tr, func(i, j int) bool {
-		return tr[i].TimeStamp < tr[j].TimeStamp
-	})
-
 	return Trace(tr)
 }
 
@@ -88,7 +84,7 @@ func (trace Trace) Replay(opts ...Option) (time.Duration, error) {
 			defer wg.Done()
 			queryStartTime := start.Add(tr.TimeStamp)
 			time.Sleep(tr.TimeStamp)
-			input, err := options.inputGenerator(tr.InputIndex)
+			input, err := options.inputGenerator(tr.InputIndex, batchSize)
 			if err != nil {
 				log.WithError(err).Panic("unable to generate input")
 			}
@@ -155,7 +151,8 @@ func FindMaxQPS(opts ...Option) float64 {
 			if err != nil {
 				break
 			}
-			fmt.Printf("qps = %v, latency_bound_percentile = %v, latency = %v\n",
+			fmt.Printf("len(trace) = %v, qps = %v, latency_bound_percentile = %v, latency = %v\n",
+				len(trace),
 				traceQps,
 				100*options.latencyBoundPercentile,
 				measuredLatency,
