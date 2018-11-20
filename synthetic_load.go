@@ -12,8 +12,9 @@ import (
 )
 
 type TraceEntry struct {
-	TimeStamp      time.Duration
-	GeneratorIndex int
+	Index      int
+	InputIndex int
+	TimeStamp  time.Duration
 }
 
 type Trace []TraceEntry
@@ -39,8 +40,9 @@ func NewTrace(opts ...Option) Trace {
 		timeStamp += time.Duration((rng.ExpFloat64() / options.qps) * float64(time.Second))
 		tr = append(tr,
 			TraceEntry{
-				TimeStamp:      timeStamp,
-				GeneratorIndex: rand.Int(),
+				Index:      len(tr),
+				InputIndex: rand.Int(),
+				TimeStamp:  timeStamp,
 			},
 		)
 	}
@@ -77,15 +79,19 @@ func (trace Trace) Replay(opts ...Option) time.Duration {
 		go func() {
 			defer wg.Done()
 			queryStartTime := start.Add(tr.TimeStamp)
+			_ = queryStartTime
 			time.Sleep(tr.TimeStamp)
-			input, err := options.inputGenerator(tr.GeneratorIndex)
+			queryStartTime = time.Now()
+			input, err := options.inputGenerator(tr.InputIndex)
 			if err != nil {
 				log.WithError(err).Panic("unable to generate input")
 			}
 			options.runner.Run(
+				tr,
 				input,
 				func() {
 					latencies[ii] = time.Since(queryStartTime)
+					fmt.Printf("it took %v to run ii = %v\n", latencies[ii], ii)
 				},
 			)
 		}()

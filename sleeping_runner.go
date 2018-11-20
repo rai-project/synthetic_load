@@ -8,7 +8,7 @@ import (
 type SleepingRunner struct {
 }
 
-func (s SleepingRunner) Run(input []byte, onFinish func()) error {
+func (s SleepingRunner) Run(tr TraceEntry, input []byte, onFinish func()) error {
 	time.Sleep(20 * time.Millisecond)
 	onFinish()
 	return nil
