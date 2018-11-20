@@ -14,6 +14,7 @@ type Options struct {
 	minDuration            time.Duration
 	latencyBound           time.Duration
 	latencyBoundPercentile float64
+	batchSize              int
 	runner                 Runner
 	qps                    float64
 	maxQpsSearchIterations int64
@@ -82,6 +83,12 @@ func LatencyBoundPercentile(latencyBoundPercentile float64) Option {
 	}
 }
 
+func BatchSize(batchSize int) Option {
+	return func(o *Options) {
+		o.batchSize = batchSize
+	}
+}
+
 func MaxQPSSearchIterations(maxQpsSearchIterations int64) Option {
 	return func(o *Options) {
 		o.maxQpsSearchIterations = maxQpsSearchIterations
@@ -102,6 +109,7 @@ func NewOptions(opts ...Option) *Options {
 		latencyBoundPercentile: 0.99,
 		minDuration:            1 * time.Second,
 		minQueries:             1024,
+		batchSize:              1,
 		runner:                 SleepingRunner{},
 		maxQpsSearchIterations: math.MaxInt64,
 	}

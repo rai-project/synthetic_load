@@ -1,6 +1,7 @@
 package synthetic_load
 
 import (
+	"errors"
 	"fmt"
 	"math"
 	"math/rand"
@@ -47,6 +48,10 @@ func NewTrace(opts ...Option) Trace {
 		)
 	}
 
+	sort.Slice(tr, func(i, j int) bool {
+		return tr[i].TimeStamp < tr[j].TimeStamp
+	})
+
 	return Trace(tr)
 }
 
@@ -58,40 +63,42 @@ func (trace Trace) QPS() float64 {
 	return float64(traceLength) / float64(duration.Seconds())
 }
 
-// Replay a trace using a user provided work enqueueing function. Returns the
-// 99-percentile latency.
-func (trace Trace) Replay(opts ...Option) time.Duration {
+// Replay a trace using a user provided work enqueueing function.
+func (trace Trace) Replay(opts ...Option) (time.Duration, error) {
 	options := NewOptions(opts...)
+	batchSize := options.batchSize
 
 	if len(trace) == 0 {
-		return time.Duration(0)
+		return time.Duration(0), errors.New("no traces")
 	}
-
-	latencies := make([]time.Duration, len(trace))
-	start := time.Now()
+	cnt := len(trace) / batchSize
+	if cnt == 0 {
+		return time.Duration(0), errors.New("no batches")
+	}
+	batchLatencies := make([]time.Duration, cnt)
 
 	var wg sync.WaitGroup
-	wg.Add(len(trace))
+	wg.Add(cnt)
+	start := time.Now()
 
-	for ii := range trace {
+	for ii := 0; ii < cnt; ii++ {
 		ii := ii
-		tr := trace[ii]
+		tr := trace[(ii+1)*batchSize-1]
 		go func() {
 			defer wg.Done()
 			queryStartTime := start.Add(tr.TimeStamp)
-			_ = queryStartTime
 			time.Sleep(tr.TimeStamp)
-			queryStartTime = time.Now()
 			input, err := options.inputGenerator(tr.InputIndex)
 			if err != nil {
 				log.WithError(err).Panic("unable to generate input")
 			}
 			options.runner.Run(
 				tr,
+				batchSize,
 				input,
 				func() {
-					latencies[ii] = time.Since(queryStartTime)
-					fmt.Printf("it took %v to run ii = %v\n", latencies[ii], ii)
+					batchLatencies[ii] = time.Since(queryStartTime)
+					// fmt.Printf("it took %v to run ii = %v\n", batchLatencies[ii], ii)
 				},
 			)
 		}()
@@ -99,12 +106,21 @@ func (trace Trace) Replay(opts ...Option) time.Duration {
 
 	wg.Wait()
 
+	latencies := make([]time.Duration, cnt*batchSize)
+	for ii := range trace {
+		tail := (ii/batchSize+1)*batchSize - 1
+		if tail < len(trace) {
+			latencies[ii] = trace[tail].TimeStamp - trace[ii].TimeStamp + batchLatencies[ii/batchSize]
+		}
+	}
+
 	sort.Slice(latencies, func(ii, jj int) bool {
 		return latencies[ii] < latencies[jj]
 	})
 
 	idx := int(math.Ceil(options.latencyBoundPercentile * float64(len(latencies)-1)))
-	return latencies[idx]
+
+	return latencies[idx], nil
 }
 
 // Returns the maximum throughput (QPS) subject to a latency bound.
@@ -121,7 +137,7 @@ func FindMaxQPS(opts ...Option) float64 {
 		iters++
 		targetQps := 0.0
 		if qpsLowerBound == 0 && qpsUpperBound == math.MaxFloat64 {
-			targetQps = 512
+			targetQps = options.qps
 		} else if qpsUpperBound == math.MaxFloat64 {
 			targetQps = 2 * qpsLowerBound
 		} else {
@@ -135,8 +151,10 @@ func FindMaxQPS(opts ...Option) float64 {
 		traceQps := trace.QPS()
 		if qpsLowerBound < traceQps && traceQps < qpsUpperBound {
 			log.Debug("replaying trace")
-			measuredLatency := trace.Replay(opts...)
-
+			measuredLatency, err := trace.Replay(opts...)
+			if err != nil {
+				break
+			}
 			fmt.Printf("qps = %v, latency_bound_percentile = %v, latency = %v\n",
 				traceQps,
 				100*options.latencyBoundPercentile,
