@@ -9,7 +9,7 @@ type SleepingRunner struct {
 }
 
 func (s SleepingRunner) Run(input []byte, onFinish func()) error {
-	time.Sleep(100 * time.Microsecond)
+	time.Sleep(10 * time.Millisecond)
 	onFinish()
 	return nil
 }

@@ -98,10 +98,10 @@ func NewOptions(opts ...Option) *Options {
 			return ReadFile("/chicken.jpg")
 		},
 		seed:                   0, //time.Now().UnixNano(),
-		latencyBound:           400 * time.Microsecond,
-		latencyBoundPercentile: 0.95,
-		minDuration:            2 * time.Second,
-		minQueries:             4096,
+		latencyBound:           100 * time.Millisecond,
+		latencyBoundPercentile: 0.99,
+		minDuration:            1 * time.Second,
+		minQueries:             1024,
 		runner:                 SleepingRunner{},
 		maxQpsSearchIterations: math.MaxInt64,
 	}

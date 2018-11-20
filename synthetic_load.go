@@ -104,7 +104,6 @@ func (trace Trace) Replay(opts ...Option) time.Duration {
 // Returns the maximum throughput (QPS) subject to a 99-percentile latency
 // bound.
 func FindMaxQPS(opts ...Option) float64 {
-
 	options := NewOptions(opts...)
 
 	qpsLowerBound := 0.0
@@ -133,7 +132,7 @@ func FindMaxQPS(opts ...Option) float64 {
 			log.Debug("replaying trace")
 			measuredLatency := trace.Replay(opts...)
 
-			fmt.Printf("qps = %v , latency_bound_percentile = %v, latency = %v\n",
+			fmt.Printf("qps = %v, latency_bound_percentile = %v, latency = %v\n",
 				traceQps,
 				100*options.latencyBoundPercentile,
 				measuredLatency,
@@ -155,5 +154,6 @@ func FindMaxQPS(opts ...Option) float64 {
 			WithField("qpsLowerBound", qpsLowerBound).
 			Trace("generated new trace")
 	}
+
 	return math.Min(qpsUpperBound, qpsLowerBound)
 }

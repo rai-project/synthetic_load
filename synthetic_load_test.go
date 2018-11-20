@@ -10,9 +10,11 @@ import (
 
 func TestSleepingRunner(t *testing.T) {
 	qps := FindMaxQPS(
+		LatencyBound(100*time.Millisecond),
+		LatencyBoundPercentile(0.99),
+		MinDuration(1*time.Second),
+		MinQueries(1024),
 		// MaxQPSSearchIterations(100),
-		MinQueries(256),
-		MinDuration(100*time.Millisecond),
 	)
 	assert.NotEmpty(t, qps)
 
