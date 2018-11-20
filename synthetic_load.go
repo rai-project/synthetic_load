@@ -152,7 +152,7 @@ func FindMaxQPS(opts ...Option) float64 {
 
 		log.WithField("qpsUpperBound", qpsUpperBound).
 			WithField("qpsLowerBound", qpsLowerBound).
-			Trace("generated new trace")
+			Debug("generated new trace")
 	}
 
 	return math.Min(qpsUpperBound, qpsLowerBound)
