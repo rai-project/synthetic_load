@@ -101,8 +101,7 @@ func (trace Trace) Replay(opts ...Option) time.Duration {
 	return latencies[idx]
 }
 
-// Returns the maximum throughput (QPS) subject to a 99-percentile latency
-// bound.
+// Returns the maximum throughput (QPS) subject to a latency bound.
 func FindMaxQPS(opts ...Option) float64 {
 	options := NewOptions(opts...)
 
