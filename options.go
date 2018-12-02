@@ -78,6 +78,9 @@ func LatencyBound(latencyBound time.Duration) Option {
 // The minimum percent of queries meeting the latency bound.
 func LatencyBoundPercentile(latencyBoundPercentile float64) Option {
 	return func(o *Options) {
+		if latencyBoundPercentile > 1.0 {
+			latencyBoundPercentile = latencyBoundPercentile / 100.0
+		}
 		o.latencyBoundPercentile = latencyBoundPercentile
 	}
 }

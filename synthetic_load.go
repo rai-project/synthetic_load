@@ -105,6 +105,7 @@ func (trace Trace) Replay(opts ...Option) (time.Duration, error) {
 	})
 
 	idx := int(math.Ceil(options.latencyBoundPercentile * float64(len(latencies)-1)))
+
 	return latencies[idx], nil
 }
 
